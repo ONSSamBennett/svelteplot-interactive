@@ -1,5 +1,6 @@
 <script>
-    import { Plot, Dot, Text, RectX, HTMLTooltip } from 'svelteplot';
+
+    import { Plot, Dot, Text, RectX, Pointer, HTMLTooltip } from 'svelteplot';
     import { format } from "d3-format";
     import { timeParse, timeFormat} from "d3-time-format"
     import * as d3 from 'd3';
@@ -57,8 +58,8 @@
     } = $props();
 
     let hovered = $state();
-
     let plotEl = $state();
+    let tooltipData = $state();
 
     let categories = $derived(yKey ? new Set(data.map((d) => d[yKey])) : null)
 
@@ -232,7 +233,13 @@
             }
             return colour
         }} 
-        stroke={(d) => d[zKey] == highlighted ? ONScolours.highlightOrange : ONScolours.white}
+        stroke={(d) => {
+            if(d[zKey] == highlighted){
+                return ONScolours.highlightOrange
+             } else{
+                return ONScolours.white
+             }
+        }}
         strokeWidth={(d) => {
             if(highlighted && d[zKey] == highlighted){
                 return 8
@@ -240,7 +247,43 @@
                 return 1
             }
         }}
+        onpointerenter={(evt, d) => {
+            tooltipData = {x: evt.layerX, y: evt.layerY, data: d}
+            console.log(tooltipData)
+        }}
+        onpointerleave={() => {
+            tooltipData = null
+        }}
     />
+
+
+    {#snippet overlay()}
+        {#if tooltipData}
+            {@const isPastMidpoint = tooltipData.data[xKey] > (domainX[0] + domainX[1]) / 2}
+            <div 
+                class="tooltip"
+                style:left="{tooltipData.x}px"
+                style:top="{tooltipData.y}px"
+                style:transform={isPastMidpoint ? 'translate(-100%, -50%)' : 'translate(10px, -50%)'}
+                style:width="max-content"
+            >
+                <div class="identifier">{tooltipData.data[zKey]}</div>
+                <div class="group">{tooltipData.data[yKey]}</div>
+                <div class="value">{xAxisLabel ? xAxisLabel+": "+d3.format(xFormat)(tooltipData.data[xKey]) : d3.format(xFormat)(tooltipData.data[xKey])}</div>
+            </div>
+        {/if}
+    {/snippet}
+
+    <!-- {#if tooltipData}
+            <Dot
+                x={tooltipData.data.binX}
+                y={seriesHeight - tooltipData.y}
+                r={radius}
+                fill='white'
+                stroke={ONScolours.grey100}
+                stroke-width="2"
+            />
+    {/if} -->
 
     {#if children}
         {@render children()}
@@ -251,5 +294,21 @@
 <style>
     :global(.dot path){
         paint-order: stroke fill;
+    }
+    .tooltip {
+        position: absolute;
+        pointer-events: none;
+        background: white;
+        /* border: 1px solid #ccc; */
+        padding: 4px 8px;
+        font-size: 14px;
+        transform: translate(10px, -50%);
+    }
+    .tooltip .identifier{
+        font-weight: 600;
+    }
+    .tooltip .value{
+        line-height: 14px;
+        margin-bottom: 6px;
     }
 </style>
