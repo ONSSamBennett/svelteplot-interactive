@@ -43,9 +43,8 @@
         zFormat,
         zFormatDate,
 		ySort,
-        zSortKey, 
-        dataLabels,
-        tooltip,
+        zSortKey,
+        tooltip = true,
         height,
         seriesHeight = 200,
         radius = 4,
@@ -60,6 +59,7 @@
     let hovered = $state();
     let plotEl = $state();
     let tooltipData = $state();
+    let leaveTimeout;
 
     let categories = $derived(yKey ? new Set(data.map((d) => d[yKey])) : null)
 
@@ -87,8 +87,6 @@
     }))
 
     let chartHeight = $derived(height ? height : getChartHeight({data: data, seriesHeight: seriesHeight, categoryKey: yKey, groupKey: zKey, variant: variant}))
-
-    let barHeight = $derived(seriesHeight ? seriesHeight : getSeriesHeight({data: data, height: height, categoryKey: yKey, groupKey: zKey, variant: variant}))
 
     let domainY = $derived(!yKey ? null : yDomain ? yDomain : getCategoricalDomain({
         data: data, 
@@ -136,7 +134,7 @@
                 )
                 binX = bins[binIndex] + binSize / 2
             }
-            derivedData.push({...d, r: d[zKey] == highlighted ? 1 : 0, binX})
+            derivedData.push({...d, code: d[zKey].replace(/[^A-Z0-9\s]+|\s+/ig, "") + d[yKey].replace(/[^A-Z0-9\s]+|\s+/ig, ""), binX})
         })
         return derivedData
     })
@@ -187,10 +185,6 @@
         tickFormat: (d) => xFormatDate ? timeFormat(xFormat)(timeParse(xFormatDate)(d)) : xFormat ? format(xFormat)(d) : d,
         grid: true
     }}
-    r={{
-        range: highlighted ? [radius, radius+2] : [radius, radius],
-        domain: [0,1]
-    }}
     color={{ 
         // legend: variant == "clustered" || variant == "stacked" ? true : false,
         scheme: colours
@@ -221,7 +215,7 @@
         x={variant == 'force' ? xKey : 'binX'}
         y={0}
         fy={yKey}
-        dotClass={(d) => d[zKey] == highlighted ? 'highlighted' : ''}
+        dotClass={(d) => d[zKey] == highlighted ? d.code + ' highlighted' : d.code}
         r={radius}
         dodgeY={{ anchor: dodgeY, padding: padding}}
         fill={(d) => {
@@ -248,11 +242,17 @@
             }
         }}
         onpointerenter={(evt, d) => {
-            tooltipData = {x: evt.layerX, y: evt.layerY, data: d}
-            console.log(tooltipData)
+            if(tooltip) {
+                clearTimeout(leaveTimeout);
+                tooltipData = {x: evt.layerX, y: evt.layerY, dotx: evt.dataX, doty: evt.dataY, data: d}
+            }
         }}
         onpointerleave={() => {
-            tooltipData = null
+            if(tooltip){
+                leaveTimeout = setTimeout(() => {
+                    tooltipData = null
+                }, 300)
+            }
         }}
     />
 
@@ -274,16 +274,17 @@
         {/if}
     {/snippet}
 
-    <!-- {#if tooltipData}
+    {#if tooltipData}
             <Dot
                 x={tooltipData.data.binX}
-                y={seriesHeight - tooltipData.y}
+                y={tooltipData.doty}
+                fy={tooltipData.data[yKey]}
                 r={radius}
-                fill='white'
+                fill-opacity={0}
                 stroke={ONScolours.grey100}
-                stroke-width="2"
+                strokeWidth={3}
             />
-    {/if} -->
+    {/if}
 
     {#if children}
         {@render children()}
@@ -310,5 +311,9 @@
     .tooltip .value{
         line-height: 14px;
         margin-bottom: 6px;
+    }
+    .highlighted{
+        outline: 'white';
+        outline-width: "12px";
     }
 </style>
