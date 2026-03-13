@@ -26,6 +26,7 @@
         width,
         variant = "force",
         highlighted = null,
+        legendItemLabel = "Local authorities",
         smGridPosition,
         smKey,
         xKey = "x", 
@@ -65,18 +66,34 @@
 
     let colourLookup = $derived.by(() => {
         let coloursvar;
-        if(colours.length > 1){
-            coloursvar = {}
-            let i = 0
+        coloursvar = {}
+        let i = 0
+        if(colours.length == 1){
+            coloursvar[legendItemLabel] = colours
+        }
+        else{
             categories.forEach((category) => {
                 coloursvar[category] = colours[i]
                 i = i+1
             })
-        } else{
-            coloursvar = null
+        }
+        if(highlighted){
+            coloursvar[highlighted] = ONScolours.highlightOrange
         }
         return coloursvar
     })
+
+    let legendCategories = $derived.by(() => {
+        const coloursLength = Object.keys(colourLookup).length
+        if(coloursLength == 1){
+            return null
+        } else if(colours.length == 1 && highlighted){
+            return [legendItemLabel, highlighted]
+        } else{
+            return [...categories, highlighted]
+        }
+    })
+
 
     let domainX = $derived(getContinuousDomain({
         data: data,
@@ -155,9 +172,9 @@
 
 </script>
 
-<!-- {#if categories && !smKey && colourLookup}
-    <Legend {categories} {colourLookup}/>
-{/if} -->
+{#if legendCategories}
+    <Legend categories={legendCategories} colourScheme={colourLookup}/>
+{/if}
 
 
 <div bind:this={plotEl}>
@@ -186,7 +203,6 @@
         grid: true
     }}
     color={{ 
-        // legend: variant == "clustered" || variant == "stacked" ? true : false,
         scheme: colours
     }}
 >
@@ -220,10 +236,10 @@
         dodgeY={{ anchor: dodgeY, padding: padding}}
         fill={(d) => {
             let colour;
-            if(colourLookup){
+            if(colours.length > 1){
                 colour = colourLookup[d[yKey]]
             } else{
-                colour = colours[0]
+                colour = colours
             }
             return colour
         }} 
