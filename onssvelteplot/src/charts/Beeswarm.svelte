@@ -57,7 +57,6 @@
         children
     } = $props();
 
-    let hovered = $state();
     let plotEl = $state();
     let tooltipData = $state();
     let leaveTimeout;
@@ -103,19 +102,9 @@
         xDomain: xDomain
     }))
 
-    let chartHeight = $derived(height ? height : getChartHeight({data: data, seriesHeight: seriesHeight, categoryKey: yKey, groupKey: zKey, variant: variant}))
+    let chartHeight = $derived(height ? height : getChartHeight({data: data, seriesHeight: seriesHeight, categoryKey: yKey, variant: variant}))
 
-    let domainY = $derived(!yKey ? null : yDomain ? yDomain : getCategoricalDomain({
-        data: data, 
-        variant: variant, 
-        sort: ySort, 
-        sortKey: zSortKey, 
-        valueKey: xKey, 
-        categoryKey: yKey, 
-        groupKey: zKey
-    }))
-
-    let yAxisMargin = $derived(margin.left ? margin.left : getAxisMargin({domain: domainY}))
+    let domainY = $derived(!yKey ? null : yDomain)
 
     let bins = $derived.by(() => {
         if(variant == 'force'){
@@ -180,7 +169,7 @@
 <div bind:this={plotEl}>
 
 <Plot 
-    marginLeft={yAxisMargin}
+    marginLeft={margin.left}
     marginRight={margin.right ? margin.right : null}
     marginTop={margin.top ? margin.top : null}
     marginBottom={margin.bottom ? margin.bottom : null}
