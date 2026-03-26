@@ -3,7 +3,7 @@
     import { format } from "d3-format";
     import { timeParse, timeFormat} from "d3-time-format"
     import * as d3 from 'd3';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import { 
         getCategoricalDomain, 
         getContinuousDomain, 
@@ -16,6 +16,8 @@
     } from '../js/utils';
     import { ONScolours, ONSpalette, oldONSpalette } from '../js/colours'
     import Legend from "./shared/Legend.svelte"
+    import '././shared/style.css';
+
 
     let defaultColours = {
         simple: [ONScolours.positive, ONScolours.negative],
@@ -43,12 +45,9 @@
         yDomain,
         yFormat,
         yFormatDate,
-        zFormat,
-        zFormatDate,
 		ySort,
         zSortKey, 
         dataLabels,
-        tooltip,
         height,
         seriesHeight = 34,
         hover = false,
@@ -59,25 +58,6 @@
 
     let hovered = $state();
 
-    let categories = $derived(zKey && variant != "simple" ? new Set(data.map((d) => d[zKey])) : null)
-
-    let colourScheme = $derived.by(() => {
-        let coloursvar;
-        if(categories){
-            coloursvar = {}
-            let i = 0
-            categories.forEach((category) => {
-                coloursvar[category] = colours[i]
-                i = i+1
-            })
-        } else if(colours.length > 1){
-            coloursvar = colours[0]
-        } else{
-            coloursvar = colours
-        }
-        return coloursvar
-    })
-
     let domainX = $derived(getContinuousDomain({
         data: data,
         variant: variant,
@@ -86,9 +66,9 @@
         xDomain: xDomain
     }))
 
-    let chartHeight = $derived(height ? height : getChartHeight({data: data, seriesHeight: seriesHeight, cateogryKey: yKey, groupKey: zKey, variant: variant}))
+    let chartHeight = $derived(height ? height : getChartHeight({data: data, seriesHeight: seriesHeight, categoryKey: yKey, groupKey: zKey, variant: variant}))
 
-    let barHeight = $derived(seriesHeight ? seriesHeight : getSeriesHeight({data: data, height: height, cateogryKey: yKey, groupKey: zKey, variant: variant}))
+    let barHeight = $derived(seriesHeight ? seriesHeight : getSeriesHeight({data: data, height: height, categoryKey: yKey, groupKey: zKey, variant: variant}))
 
     let domainY = $derived(yDomain ? yDomain : getCategoricalDomain({
         data: data, 
@@ -100,17 +80,55 @@
         groupKey: zKey
     }))
 
-    $inspect(domainY)
+    let bars = $state([])
+    let labels = $state([])
+    let highlightBackground = $state([null])
+
+    $effect(() => {
+        untrack(() => {
+            bars.forEach((d) => {
+                d[xKey] = 0
+            })
+            labels.forEach((d) => {
+                d[xKey] = 0
+            })
+        })
+        data.forEach((d, i) => {
+            let uniqueid = zKey ? d[yKey] + d[zKey] : d[yKey]
+            untrack(() => {
+                if(keyIndex.indexOf(uniqueid) != -1){
+                    bars[keyIndex.indexOf(uniqueid)] = d
+
+                } else{
+                    bars.push({...d, id: uniqueid, show: true})
+                }
+            })
+        })
+        labelsData.forEach((d) => {
+            let uniqueid = zKey ? d[yKey] + d[zKey] : d[yKey]
+            untrack(() => {
+                if(keyIndex.indexOf(uniqueid) != -1){
+                    labels[keyIndex.indexOf(uniqueid)] = d
+
+                } else{
+                    labels.push({...d, id: uniqueid})
+                }
+            })
+        })
+        untrack(() => {highlightBackground = highlighted ? bars.filter((d) => d[yKey] == highlighted) : null})
+    })
+
+    let keyIndex = $derived(bars ? bars.map((d) => zKey ? d[yKey] + d[zKey] : d[yKey]) : [null])
+
+    let yAxisMargin = $derived(margin.left ? margin.left : getAxisMargin({domain: domainY}))
 
     let xScale = $derived(
         d3.scaleLinear().range([0, width-yAxisMargin-margin.right]).domain(domainX)
     )
 
-    let yAxisMargin = $derived(margin.left ? margin.left : getAxisMargin({domain: domainY}))
-
-    let labels = $derived.by(() => {
-        if(variant == "stacked"){
-            let stackedData = stackData({data: data, categoryKey: yKey, valueKey: xKey, categories: domainY})
+    let labelsData = $derived.by(() => {
+        if(variant == "stacked" && xScale){
+            let stackedData = stackData({data: [...bars].sort((a, b) => Array.from(categories).indexOf(a[zKey]) - Array.from(categories).indexOf(b[zKey])), categoryKey: yKey, valueKey: xKey, categories: domainY})
             stackedData.forEach((d) => {
                 d.labelWidth = labelPixelWidth(d[xKey])
                 d.barWidth = xScale(d[xKey])
@@ -131,8 +149,33 @@
         }
     })
 
-    onMount(() => {
-        d3.selectAll(".is-left").attr("text-anchor","end")
+    $inspect(labelsData)
+
+    let categories = $derived(zKey && variant != "simple" ? new Set(bars.map((d) => d[zKey])) : null)
+
+    let colourScheme = $derived.by(() => {
+        let coloursvar;
+        if(categories){
+            coloursvar = {}
+            let i = 0
+            categories.forEach((category) => {
+                coloursvar[category] = colours[i]
+                i = i+1
+            })
+        } else if(colours.length > 1){
+            coloursvar = colours[0]
+        } else{
+            coloursvar = colours
+        }
+        return coloursvar
+    })
+
+    $inspect(variant == "stacked" ? categories : null)
+
+    $effect(() => {
+        if(data){
+            d3.selectAll(".is-left").attr("text-anchor","end")
+        }
     })
 
 </script>
@@ -177,7 +220,7 @@
     }}
 >
     {#if highlighted && variant != 'simple'}
-        <RectX data={data.filter((d) => d[yKey] == highlighted)}
+        <RectX data={highlightBackground}
             y1={variant == "clustered" ? null : yKey}
             y2={variant == "clustered" ? null : yKey}
             fy={variant == "clustered" ? yKey : null}
@@ -185,17 +228,16 @@
             insetBottom={-2}
             insetLeft={-yAxisMargin}
             fill={ONScolours.grey20}
-            class={"opaque"}
+            class="highlight-bar"
         />
     {/if}
     <AxisY tickClass={(d) => d == highlighted ? "bold" : null}/>
     <AxisX tickCount={xAxisTicks}/>
     <BarX 
-        data={data}
+        data={bars}
         x={xKey} 
         y={variant == "clustered" ? zKey : yKey}
         fy={variant == "clustered" ? yKey : null}
-        fx={variant == "small-multiple" ? zKey : null}
         fill={(d) => {
             let colour;
             if(variant == "stacked" || variant == "clustered"){
@@ -207,12 +249,9 @@
             } else{ 
                 colour = colours[0]
             }
-
-            // if(variant != 'simple' && highlighted && d[yKey] != highlighted){
-            //     colour = colour + "C7"
-            // }
             return colour
         }}
+        class="bar"
         stroke={(d) => {
             if(highlighted && variant != 'simple' && d[yKey] == highlighted){
                 return ONScolours.grey100
@@ -224,23 +263,12 @@
             }
         }}
     />
-    {#if hover}
-        <Pointer
-            data={data}
-            y={variant == "clustered" ? zKey : yKey}
-            onupdate={(e) => {
-                hovered = e
-                console.log(hovered)
-            }}/>
-    {/if}
-
     {#if dataLabels}
         <Text
             data={labels.filter((d) => d.show == true)}
             x={variant == "stacked" ? "stackEnd" : xKey} 
             y={variant == "clustered" ? zKey : yKey}
             fy={variant == "clustered" ? yKey : null}
-            fx={variant == "small-multiple" ? zKey : null}
             textAnchor={(d) => d.anchor}
             dx={(d) => {
                 if(variant == "stacked"){

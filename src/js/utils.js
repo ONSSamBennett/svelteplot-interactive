@@ -149,7 +149,7 @@ export function stackData({
 }
 
 export function labelPixelWidth(text){
-	const charPixelWidth = 10
+	const charPixelWidth = 7
 	text = text.toString()
 	return text.length * charPixelWidth
 }
@@ -189,7 +189,7 @@ export function getAxisMargin({
 }){
 	let lengths = []
 	domain.forEach((d) => lengths.push(labelPixelWidth(d)))
-	return d3.max(lengths)
+	return d3.max(lengths)+12
 }
 
 export function getScreenSize(width){

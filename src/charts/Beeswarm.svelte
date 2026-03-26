@@ -4,7 +4,7 @@
     import { format } from "d3-format";
     import { timeParse, timeFormat} from "d3-time-format"
     import * as d3 from 'd3';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import { 
         getCategoricalDomain, 
         getContinuousDomain, 
@@ -30,7 +30,7 @@
         smGridPosition,
         smKey,
         xKey = "x", 
-        yKey = "y",
+        yKey = Object.keys(data[0]).includes('y') ? 'y' : null,
         zKey = "z",
         xAxisLabel,
         yAxisLabel, 
@@ -60,6 +60,8 @@
     let plotEl = $state();
     let tooltipData = $state();
     let leaveTimeout;
+
+    $inspect(data)
 
     let categories = $derived(yKey ? new Set(data.map((d) => d[yKey])) : null)
 
@@ -128,9 +130,11 @@
         }
     })
 
-    let dots = $derived.by(() => {
-        const binSize = bins ? Math.abs(domainX[1] - domainX[0]) / numberBins : null
-        let derivedData = []
+    let binSize = $derived(bins ? Math.abs(domainX[1] - domainX[0]) / numberBins : null)
+
+    let dots = $state([])
+
+    $effect(() => {
         data.forEach((d) => {
             let binX = null
             if (bins && binSize) {
@@ -140,10 +144,18 @@
                 )
                 binX = bins[binIndex] + binSize / 2
             }
-            derivedData.push({...d, code: d[zKey].replace(/[^A-Z0-9\s]+|\s+/ig, "") + d[yKey].replace(/[^A-Z0-9\s]+|\s+/ig, ""), binX})
+            let obj = {...d, code: d[zKey].replace(/[^A-Z0-9\s]+|\s+/ig, "") + d[yKey].replace(/[^A-Z0-9\s]+|\s+/ig, ""), binX}
+            untrack(() => {
+                if(keyIndex.indexOf(obj[zKey]) != -1){
+                    dots[keyIndex.indexOf(obj[zKey])] = obj
+                } else{
+                    dots.push(obj)
+                }
+            })
         })
-        return derivedData
     })
+
+    let keyIndex = $derived(dots ? dots.map((d) => d[zKey]) : [null])
 
     $effect(() => {
         if (dots && plotEl){
@@ -215,12 +227,12 @@
             text={category}
         />
     {/each}
+    {#if dots}
     <Dot
         data={dots}
         x={variant == 'force' ? xKey : 'binX'}
         y={0}
-        fy={yKey}
-        dotClass={(d) => d[zKey] == highlighted ? d.code + ' highlighted' : d.code}
+        dotClass={(d) => d[zKey] == highlighted ? d.code + ' highlighted dot' : d.code + ' dot'}
         r={radius}
         dodgeY={{ anchor: dodgeY, padding: padding}}
         fill={(d) => {
@@ -272,6 +284,7 @@
             }
         }}
     />
+    {/if}
 
 
     {#snippet overlay()}
@@ -321,4 +334,19 @@
         outline: 'white';
         outline-width: "12px";
     }
+    :global(.dot) {
+		transition: all 1s ease-in-out;
+		opacity: 1;
+		animation-name: fadeInOpacity;
+		animation-timing-function: ease-in;
+		animation-duration: 0.5s;
+	}
+	@keyframes fadeInOpacity {
+		0% {
+			opacity: 0;
+		}
+		100% {
+			opacity: 1;
+		}
+	}
 </style>

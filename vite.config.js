@@ -3,12 +3,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 
 /** @type {import('vite').UserConfig} */
 const config = {
-        plugins: [sveltekit()],        
-        server:{
-                fs:{
-                        allow:['onssvelteplot','d3']
-                }
-        },
+        plugins: [sveltekit()],
         //removes console.logs in production
         esbuild: {
                 drop: ['console', 'debugger'],
