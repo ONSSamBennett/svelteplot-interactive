@@ -1,0 +1,38 @@
+    [[
+        {"series": "Series A", "category": "A", "value": 20},
+        {"series": "Series B", "category": "A", "value": 30},
+        {"series": "Series C", "category": "A", "value": 100},
+        {"series": "Series D", "category": "A", "value": 50},
+        {"series": "Series E", "category": "A", "value": 70},
+        {"series": "Series A", "category": "B", "value": 30},
+        {"series": "Series B", "category": "B", "value": 30},
+        {"series": "Series C", "category": "B", "value": 20},
+        {"series": "Series D", "category": "B", "value": 60},
+        {"series": "Series E", "category": "B", "value": 10}
+    ],
+    [
+        {"series": "Series A", "category": "A", "value": 40},
+        {"series": "Series B", "category": "A", "value": 70},
+        {"series": "Series C", "category": "A", "value": 50},
+        {"series": "Series D", "category": "A", "value": 80},
+        {"series": "Series E", "category": "A", "value": 90},
+        {"series": "Series A", "category": "B", "value": 100},
+        {"series": "Series B", "category": "B", "value": 20},
+        {"series": "Series C", "category": "B", "value": 60},
+        {"series": "Series D", "category": "B", "value": 70},
+        {"series": "Series E", "category": "B", "value": 80}
+    ],
+    [
+        {"series": "Series A", "category": "A", "value": 40},
+        {"series": "Series B", "category": "A", "value": 70},
+        {"series": "Series C", "category": "A", "value": 80},
+        {"series": "Series D", "category": "A", "value": 90},
+        {"series": "Series E", "category": "A", "value": 30},
+        {"series": "Series A", "category": "B", "value": 100},
+        {"series": "Series B", "category": "B", "value": 20},
+        {"series": "Series C", "category": "B", "value": 70},
+        {"series": "Series D", "category": "B", "value": 80},
+        {"series": "Series E", "category": "B", "value": 50},
+        {"series": "Series F", "category": "A", "value": 20},
+        {"series": "Series F", "category": "B", "value": 20}
+    ]]

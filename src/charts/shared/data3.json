@@ -1,0 +1,13 @@
+[[
+    {"series": "Series A", "value": 30},
+    {"series": "Series B", "value": 40},
+    {"series": "Series C", "value": 80},
+    {"series": "Series D", "value": 50}
+],
+[
+    {"series": "Series A", "value": 20},
+    {"series": "Series B", "value": 70},
+    {"series": "Series C", "value": 60},
+    {"series": "Series D", "value": 80}
+]
+]
